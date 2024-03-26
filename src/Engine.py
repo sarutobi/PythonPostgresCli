@@ -1,17 +1,24 @@
+from multiprocessing import Process
 from time import sleep
 from sqlalchemy import create_engine
-from sqlalchemy import text
+
 import settings
+from Client import BaseClient
 
-list_conn = []
+list_clients = []
+procs = []
 
-engine = create_engine(settings.DB_URL, pool_size=90,echo=True)
+engine = create_engine(settings.DB_URL, pool_size=5,echo=True)
 for i in range(1,80) :
-    conn = engine.connect()
-    list_conn.append(conn)
+    client = BaseClient(engine)
+    list_clients.append(client)
+
 for i in range(1, 3):
-    for conn in list_conn:
-#with engine.connect() as conn:
-        conn.execute(text("select current_time"))
-        sleep(1)
-    #print(result.all())
+    for client in list_clients:
+        proc = Process(target=client.execute, args=("select current_time",))
+        procs.append(proc)
+        proc.start()
+
+    for proc in procs:
+        proc.join()
+
