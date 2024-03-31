@@ -1,24 +1,44 @@
-from multiprocessing import Process
+import datetime
+
+from threading import Event, Thread
 from time import sleep
-from sqlalchemy import create_engine
+#from sqlalchemy import create_engine
 
 import settings
-from Client import BaseClient
+from Client import ConnectedClient
 
-list_clients = []
-procs = []
+timedelta = 10
+num_clients = 10
 
-engine = create_engine(settings.DB_URL, pool_size=5,echo=True)
-for i in range(1,80) :
-    client = BaseClient(engine)
-    list_clients.append(client)
+threads = []
+stop_all = Event()
 
-for i in range(1, 3):
-    for client in list_clients:
-        proc = Process(target=client.execute, args=("select current_time",))
-        procs.append(proc)
-        proc.start()
+for i in range(0,num_clients) :
+    client = ConnectedClient(settings.DB_URL, stop_all)
+    thread = Thread(target=client.execute)
+    threads.append(thread)
+    thread.start()
 
-    for proc in procs:
-        proc.join()
+curtime = datetime.datetime.now()
+tilltime = curtime + datetime.timedelta(seconds=timedelta)
+
+while (datetime.datetime.now() < tilltime):
+    sleep(1)
+
+# Устанавливаем флаг завершения клиентов
+stop_all.set()
+
+for t in threads:
+    t.join()
+
+#while(True):
+#    for client in list_clients:
+#        proc = Process(target=client.execute, args=("select current_time",))
+#        procs.append(proc)
+#        proc.start()
+#        if datetime.datetime.now() < tilltime:
+#            break
+
+#    for proc in procs:
+#        proc.join()
 
