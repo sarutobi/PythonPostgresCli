@@ -52,13 +52,25 @@ class IdleInTransactionClient(BaseClient):
             while (not self.stop_now.is_set()):
                 sleep(1)
             conn.rollback()
-        # conn.close()
+class SelectOneClient(BaseClient):
+    """This client open connection and periodiaclly sent a 'Select 1' query """
+
+    def __init__(self, db_url:str, stop:bool) -> None:
+        super().__init__(db_url, stop)
+
+    def execute(self) -> None:
+        with self.engine.connect() as conn:
+            while (not self.stop_now.is_set()):
+                sleep(1)
+                conn.execute(text("select 1;"))
+            conn.rollback()
 
 def client_factory(client_type: str, db_url:str, stop:bool) -> BaseClient:
     """ This is Factory for clients by type"""
     clients = {
         "Idle" : IdleClient,
-        "IdleInTransaction": IdleInTransactionClient
+        "IdleInTransaction": IdleInTransactionClient,
+        "SelectOne": SelectOneClient
     }
  
     if client_type not in clients.keys():

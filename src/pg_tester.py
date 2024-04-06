@@ -41,7 +41,7 @@ if (__name__ == '__main__'):
 
     parser = argparse.ArgumentParser(description="Test postgresql client")
     parser.add_argument("--clients", "-c", type=int, default=10, help='number of clients to spawn')
-    parser.add_argument("--type", "-T", choices=['Idle', 'IdleInTransaction'], default='Idle', help='Type of spawned clients')
+    parser.add_argument("--type", "-T", choices=['Idle', 'IdleInTransaction', 'SelectOne'], default='Idle', help='Type of spawned clients')
     timeset = parser.add_mutually_exclusive_group()
     timeset.add_argument("--time", "-t", type=int, default=60,  help='time to work in seconds')
     timeset.add_argument("--infinite", "-I", action='store_true', help='Run clients until break')
