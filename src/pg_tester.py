@@ -8,7 +8,7 @@ from time import sleep
 from  settings import DB_URL
 from clients.Client import client_factory
 
-def spawn_clients(client_type:str, num_clients:int, timedelta:int):
+def spawn_clients(client_type:str, num_clients:int, timedelta:int, ignore_time:bool):
     """ Spawn and start clients """
     threads = []
 
@@ -21,7 +21,7 @@ def spawn_clients(client_type:str, num_clients:int, timedelta:int):
     curtime = datetime.datetime.now()
     tilltime = curtime + datetime.timedelta(seconds=timedelta)
 
-    while (datetime.datetime.now() < tilltime):
+    while (ignore_time or datetime.datetime.now() < tilltime):
         sleep(1)
 
     # Устанавливаем флаг завершения клиентов
@@ -41,9 +41,12 @@ if (__name__ == '__main__'):
 
     parser = argparse.ArgumentParser(description="Test postgresql client")
     parser.add_argument("--clients", "-c", type=int, default=10, help='number of clients to spawn')
-    parser.add_argument("--time", "-t", type=int, default=60,  help='time to work in seconds')
     parser.add_argument("--type", "-T", choices=['Idle', 'IdleInTransaction'], default='Idle', help='Type of spawned clients')
+    timeset = parser.add_mutually_exclusive_group()
+    timeset.add_argument("--time", "-t", type=int, default=60,  help='time to work in seconds')
+    timeset.add_argument("--infinite", "-I", action='store_true', help='Run clients until break')
+    
 
     args = (parser.parse_args())
     
-    spawn_clients(client_type=args.type,num_clients=args.clients, timedelta=args.time)
+    spawn_clients(client_type=args.type, num_clients=args.clients, timedelta=args.time, ignore_time=args.infinite)

@@ -1,5 +1,5 @@
 from time import sleep
-from sqlalchemy import NullPool, create_engine, create_pool_from_url, text
+from sqlalchemy import NullPool, create_engine, text
 
 
 class BaseClient:
