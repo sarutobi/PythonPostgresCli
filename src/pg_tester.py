@@ -6,14 +6,14 @@ from threading import Thread, Event
 from time import sleep
 
 from  settings import DB_URL
-from clients.Client import ConnectedClient
+from clients.Client import client_factory
 
-def spawn_clients(num_clients:int, timedelta:int):
+def spawn_clients(client_type:str, num_clients:int, timedelta:int):
     """ Spawn and start clients """
     threads = []
 
     for i in range(0,num_clients) :
-        client = ConnectedClient(DB_URL, stop_all)
+        client = client_factory(client_type, DB_URL, stop_all)
         thread = Thread(target=client.execute)
         threads.append(thread)
         thread.start()
@@ -42,8 +42,8 @@ if (__name__ == '__main__'):
     parser = argparse.ArgumentParser(description="Test postgresql client")
     parser.add_argument("--clients", "-c", type=int, default=10, help='number of clients to spawn')
     parser.add_argument("--time", "-t", type=int, default=60,  help='time to work in seconds')
-    parser.add_argument("--type", "-T", choices=['connection'], help='Type of spawned clients')
+    parser.add_argument("--type", "-T", choices=['Idle', 'IdleInTransaction'], default='Idle', help='Type of spawned clients')
 
     args = (parser.parse_args())
     
-    spawn_clients(num_clients=args.clients, timedelta=args.time)
+    spawn_clients(client_type=args.type,num_clients=args.clients, timedelta=args.time)

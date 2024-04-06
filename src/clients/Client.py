@@ -1,12 +1,12 @@
 from time import sleep
-from sqlalchemy import create_pool_from_url, text
+from sqlalchemy import NullPool, create_engine, create_pool_from_url, text
 
 
 class BaseClient:
     """ Base client """    
 
     def __init__(self, db_url:str, stop_now:bool) -> None:
-        self.db_pool = create_pool_from_url(db_url)
+        self.engine = create_engine(db_url, poolclass=NullPool)
         self.stop_now = stop_now
 
     def stop(self, signum, frame):
@@ -22,21 +22,46 @@ class QueryClient(BaseClient):
 
     def execute(self):
         while (not self.stop_now):
-            with self.db_pool.connect() as conn:
+            with self.engine.connect() as conn:
                 conn.execute(text(self.query))
 
             sleep(1)
 
-class ConnectedClient(BaseClient):
-    """This client hold open connection and do nothing"""
+class IdleClient(BaseClient):
+    """This client hold open connection and do nothing - connection in idle state"""
 
     def __init__(self, db_url:str, stop:bool) -> None:
         super().__init__(db_url, stop)
 
     def execute(self) -> None:
-        conn = self.db_pool.connect()
+        conn = self.engine.connect()
 
         while (not self.stop_now.is_set()):
             sleep(1)
         conn.close()
-        
+
+class IdleInTransactionClient(BaseClient):
+    """This client hold open connection in open transaction state and do nothing - idle in transaction"""
+
+    def __init__(self, db_url:str, stop:bool) -> None:
+        super().__init__(db_url, stop)
+
+    def execute(self) -> None:
+        with self.engine.begin() as conn:
+            conn.execute(text("begin transaction;"))
+            while (not self.stop_now.is_set()):
+                sleep(1)
+            conn.rollback()
+        # conn.close()
+
+def client_factory(client_type: str, db_url:str, stop:bool) -> BaseClient:
+    """ This is Factory for clients by type"""
+    clients = {
+        "Idle" : IdleClient,
+        "IdleInTransaction": IdleInTransactionClient
+    }
+ 
+    if client_type not in clients.keys():
+        raise ValueError("Unknown client type '{}'".format(client_type))
+    
+    return clients[client_type](db_url, stop)
